@@ -1,0 +1,168 @@
+﻿
+### ZADANIE 4 — testy reguł biznesowych
+### Daty testowe: 23 października 2026
+### Uruchamiaj od góry, na świeżo uruchomionym serwerze
+
+@baseUrl = http://localhost:3000
+@date = 2026-10-23
+
+### 0. Utwórz rezerwację bazową: sala 1, 10:00–12:00
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Rezerwacja bazowa",
+  "participants": 5,
+  "startTime": "{{date}}T10:00:00Z",
+  "endTime": "{{date}}T12:00:00Z"
+}
+
+> {% client.global.set("baseReservationId", response.body.id); %}
+
+### 1. Przedział 12:00–13:00 — oczekiwany sukces (201)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Test stykajacy sie koniec",
+  "participants": 5,
+  "startTime": "{{date}}T12:00:00Z",
+  "endTime": "{{date}}T13:00:00Z"
+}
+
+### 2. Przedział 08:00–10:00 — oczekiwany sukces (201)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Test stykajacy sie poczatek",
+  "participants": 5,
+  "startTime": "{{date}}T08:00:00Z",
+  "endTime": "{{date}}T10:00:00Z"
+}
+
+### 3. Przedział 11:00–13:00 — oczekiwany konflikt (409)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Test nakladania",
+  "participants": 5,
+  "startTime": "{{date}}T11:00:00Z",
+  "endTime": "{{date}}T13:00:00Z"
+}
+
+### 4. Przedział 09:00–13:00 — oczekiwany konflikt (409)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Test zawierania",
+  "participants": 5,
+  "startTime": "{{date}}T09:00:00Z",
+  "endTime": "{{date}}T13:00:00Z"
+}
+
+### 5. Przedział 10:30–11:00 — oczekiwany konflikt (409)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Test wewnatrz przedzialu",
+  "participants": 5,
+  "startTime": "{{date}}T10:30:00Z",
+  "endTime": "{{date}}T11:00:00Z"
+}
+
+### 6. Ten sam czas, inna sala — oczekiwany sukces (201)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 2,
+  "reservedBy": "Test innej sali",
+  "participants": 5,
+  "startTime": "{{date}}T10:00:00Z",
+  "endTime": "{{date}}T12:00:00Z"
+}
+
+### 7a. Anuluj rezerwację bazową
+PATCH {{baseUrl}}/api/reservations/{{baseReservationId}}/cancel
+
+### 7b. Ten sam czas po anulowaniu — oczekiwany sukces (201)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 1,
+  "reservedBy": "Test po anulowaniu",
+  "participants": 5,
+  "startTime": "{{date}}T10:00:00Z",
+  "endTime": "{{date}}T12:00:00Z"
+}
+
+### 8. Koniec przed początkiem — oczekiwany błąd (400)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 3,
+  "reservedBy": "Test zlych dat",
+  "participants": 5,
+  "startTime": "{{date}}T12:00:00Z",
+  "endTime": "{{date}}T11:00:00Z"
+}
+
+### 9. Czas trwania 10 minut — oczekiwany błąd (400)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 3,
+  "reservedBy": "Test za krotki",
+  "participants": 5,
+  "startTime": "{{date}}T14:00:00Z",
+  "endTime": "{{date}}T14:10:00Z"
+}
+
+### 10. Czas trwania 9 godzin — oczekiwany błąd (400)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 3,
+  "reservedBy": "Test za dlugi",
+  "participants": 5,
+  "startTime": "{{date}}T14:00:00Z",
+  "endTime": "{{date}}T23:00:00Z"
+}
+
+### 11. Początek w przeszłości — oczekiwany błąd (400)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 3,
+  "reservedBy": "Test przeszlosci",
+  "participants": 5,
+  "startTime": "2020-01-01T10:00:00Z",
+  "endTime": "2020-01-01T11:00:00Z"
+}
+
+### 12. Przekroczenie pojemności sali 3 (12 osób) — oczekiwany konflikt (409)
+POST {{baseUrl}}/api/reservations
+Content-Type: application/json
+
+{
+  "roomId": 3,
+  "reservedBy": "Test pojemnosci",
+  "participants": 13,
+  "startTime": "{{date}}T15:00:00Z",
+  "endTime": "{{date}}T16:00:00Z"
+}
