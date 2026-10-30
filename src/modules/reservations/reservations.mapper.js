@@ -4,7 +4,18 @@
 
     return {
         id: reservation.id,
-        roomId: reservation.roomId,
+        room: reservation.room
+            ? {
+                id: reservation.room.id,
+                name: reservation.room.name,
+                building: reservation.room.building
+                    ? {
+                        id: reservation.room.building.id,
+                        name: reservation.room.building.name
+                    }
+                    : null
+            }
+            : null,
         reservedBy: reservation.reservedBy,
         participants: reservation.participants,
         startTime: toIsoOrNull(reservation.startTime),

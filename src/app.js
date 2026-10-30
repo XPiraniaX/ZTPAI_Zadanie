@@ -20,7 +20,7 @@ function createApp({
 
     app.use(
         "/api/buildings",
-        createBuildingsRoutes(buildingsRepository)
+        createBuildingsRoutes(buildingsRepository, roomsRepository)
     );
 
     app.use(

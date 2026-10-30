@@ -1,4 +1,4 @@
-﻿function createReservationsRepository() {
+﻿function createReservationsRepository(roomsRepository) {
     const reservations = [
         {
             id: 1,
@@ -16,9 +16,26 @@
 
     let nextId = 2;
 
+    async function mapReservation(reservation) {
+        if (!reservation) return null;
+
+        const room = await roomsRepository.findById(reservation.roomId);
+
+        return {
+            ...reservation,
+            room: room
+                ? {
+                    id: room.id,
+                    name: room.name,
+                    building: room.building
+                }
+                : null
+        };
+    }
+
     return {
         async findAll() {
-            return reservations.map(reservation => ({ ...reservation }));
+            return Promise.all(reservations.map(mapReservation));
         },
 
         async findById(id) {
@@ -26,7 +43,7 @@
                 item => item.id === Number(id)
             );
 
-            return reservation ? { ...reservation } : null;
+            return mapReservation(reservation);
         },
 
         async findByRoomId(roomId) {
@@ -50,7 +67,8 @@
             };
 
             reservations.push(reservation);
-            return { ...reservation };
+
+            return mapReservation(reservation);
         },
 
         async update(id, changes) {
@@ -58,12 +76,11 @@
                 item => item.id === Number(id)
             );
 
-            if (!reservation) {
-                return null;
-            }
+            if (!reservation) return null;
 
             Object.assign(reservation, changes);
-            return { ...reservation };
+
+            return mapReservation(reservation);
         }
     };
 }

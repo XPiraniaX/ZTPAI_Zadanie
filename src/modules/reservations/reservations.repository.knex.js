@@ -1,8 +1,9 @@
-﻿function createReservationsRepository(knex) {
+﻿
+function createReservationsRepository(knex) {
     function mapReservation(row) {
         if (!row) return null;
 
-        return {
+        const reservation = {
             id: row.id,
             roomId: row.room_id,
             reservedBy: row.reserved_by,
@@ -13,20 +14,53 @@
             cancelledAt: row.cancelled_at,
             createdAt: row.created_at
         };
+
+        if (row.joined_room_id !== undefined) {
+            reservation.room = {
+                id: row.joined_room_id,
+                name: row.joined_room_name,
+                building: {
+                    id: row.joined_building_id,
+                    name: row.joined_building_name
+                }
+            };
+        }
+
+        return reservation;
+    }
+
+    function reservationWithRelationsQuery() {
+        return knex("reservations as res")
+            .join("rooms as room", "room.id", "res.room_id")
+            .join("buildings as building", "building.id", "room.building_id")
+            .select(
+                "res.id",
+                "res.room_id",
+                "res.reserved_by",
+                "res.participants",
+                "res.start_time",
+                "res.end_time",
+                "res.status",
+                "res.cancelled_at",
+                "res.created_at",
+                "room.id as joined_room_id",
+                "room.name as joined_room_name",
+                "building.id as joined_building_id",
+                "building.name as joined_building_name"
+            );
     }
 
     return {
         async findAll() {
-            const rows = await knex("reservations")
-                .select("*")
-                .orderBy("id", "asc");
+            const rows = await reservationWithRelationsQuery()
+                .orderBy("res.id", "asc");
 
             return rows.map(mapReservation);
         },
 
         async findById(id) {
-            const row = await knex("reservations")
-                .where({ id: Number(id) })
+            const row = await reservationWithRelationsQuery()
+                .where("res.id", Number(id))
                 .first();
 
             return mapReservation(row);
@@ -51,9 +85,9 @@
                     status: "CONFIRMED",
                     cancelled_at: null
                 })
-                .returning("*");
+                .returning("id");
 
-            return mapReservation(row);
+            return this.findById(row.id);
         },
 
         async update(id, changes) {
@@ -67,12 +101,11 @@
                 updateData.cancelled_at = changes.cancelledAt;
             }
 
-            const [row] = await knex("reservations")
+            await knex("reservations")
                 .where({ id: Number(id) })
-                .update(updateData)
-                .returning("*");
+                .update(updateData);
 
-            return mapReservation(row);
+            return this.findById(id);
         }
     };
 }

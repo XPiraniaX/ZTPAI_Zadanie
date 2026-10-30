@@ -31,6 +31,12 @@ function createReservationsRoutes(
         controller.getAll
     );
 
+    router.get(
+        "/:id",
+        validate({ params: reservationIdSchema }),
+        controller.getById
+    );
+
     router.post(
         "/",
         validate({ body: createReservationSchema }),

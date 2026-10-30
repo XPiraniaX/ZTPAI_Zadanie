@@ -1,5 +1,4 @@
-﻿
-const {
+﻿const {
     toReservationResponse
 } = require("./reservations.mapper");
 
@@ -12,6 +11,15 @@ function createReservationsController(reservationsService) {
                 await reservationsService.getAllReservations(roomId);
 
             res.json(reservations.map(toReservationResponse));
+        },
+
+        async getById(req, res) {
+            const reservation =
+                await reservationsService.getReservationById(
+                    req.validated.params.id
+                );
+
+            res.json(toReservationResponse(reservation));
         },
 
         async create(req, res) {
