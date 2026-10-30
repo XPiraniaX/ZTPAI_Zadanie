@@ -1,0 +1,53 @@
+﻿diff --git a/src/modules/rooms/rooms.service.js b/src/modules/rooms/rooms.service.js
+index 89b4a24..106deef 100644
+--- a/src/modules/rooms/rooms.service.js
++++ b/src/modules/rooms/rooms.service.js
+@@ -1,21 +1,35 @@
+ ´╗┐const NotFoundError = require("../../errors/NotFoundError");
+ 
+-function createRoomsService(roomsRepository) {
+-    return {
+-        async getAllRooms() {
+-            return roomsRepository.findAll();
+-        },
++function createRoomsService(roomsRepository, buildingsRepository) {
++    async function getAllRooms() {
++        return roomsRepository.findAll();
++    }
++
++    async function getRoomById(id) {
++        const room = await roomsRepository.findById(id);
++
++        if (!room) {
++            throw new NotFoundError("Room not found");
++        }
+ 
+-        async getRoomById(id) {
+-            const room = await roomsRepository.findById(id);
++        return room;
++    }
+ 
+-            if (!room) {
+-                throw new NotFoundError("Room not found");
+-            }
++    async function createRoom(data) {
++        const building = await buildingsRepository.findById(data.buildingId);
+ 
+-            return room;
++        if (!building) {
++            throw new NotFoundError("Building not found");
+         }
++
++        return roomsRepository.create(data);
++    }
++
++    return {
++        getAllRooms,
++        getRoomById,
++        createRoom
+     };
+ }
+ 
+-module.exports = { createRoomsService };
++module.exports = { createRoomsService };
+\ No newline at end of file

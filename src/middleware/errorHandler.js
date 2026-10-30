@@ -11,6 +11,16 @@ function errorHandler(err, req, res, next) {
         });
     }
 
+    if (err.code === "23505") {
+        return res.status(409).json({
+            error: {
+                code: "CONFLICT",
+                message: "A room with this name already exists in this building",
+                requestId: req.id
+            }
+        });
+    }
+
     const isOperational = err instanceof AppError;
 
     const statusCode = isOperational ? err.statusCode : 500;

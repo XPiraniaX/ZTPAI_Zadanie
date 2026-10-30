@@ -1,0 +1,45 @@
+﻿const express = require("express");
+const createBuildingsController = require("./buildings.controller");
+const {
+    createBuildingSchema,
+    buildingIdSchema
+} = require("./buildings.schemas");
+
+function createBuildingsRoutes(buildingsRepository) {
+    const router = express.Router();
+    const controller = createBuildingsController(buildingsRepository);
+
+    router.get("/", controller.getAllBuildings);
+
+    router.get("/:id", (req, res, next) => {
+        const result = buildingIdSchema.safeParse(req.params);
+
+        if (!result.success) {
+            return res.status(400).json({
+                error: "Validation failed",
+                details: result.error.issues
+            });
+        }
+
+        req.params.id = String(result.data.id);
+        next();
+    }, controller.getBuildingById);
+
+    router.post("/", (req, res, next) => {
+        const result = createBuildingSchema.safeParse(req.body);
+
+        if (!result.success) {
+            return res.status(400).json({
+                error: "Validation failed",
+                details: result.error.issues
+            });
+        }
+
+        req.body = result.data;
+        next();
+    }, controller.createBuilding);
+
+    return router;
+}
+
+module.exports = createBuildingsRoutes;
