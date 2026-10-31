@@ -5,7 +5,10 @@
         const reservation = {
             id: row.id,
             roomId: row.room_id,
-            reservedBy: row.reserved_by,
+            user: {
+                id: row.user_id,
+                email: row.user_email
+            },
             participants: row.participants,
             startTime: row.start_time,
             endTime: row.end_time,
@@ -32,10 +35,12 @@
         return db("reservations as res")
             .join("rooms as room", "room.id", "res.room_id")
             .join("buildings as building", "building.id", "room.building_id")
+            .join("users as usr", "usr.id", "res.user_id")
             .select(
                 "res.id",
                 "res.room_id",
-                "res.reserved_by",
+                "res.user_id",
+                "usr.email as user_email",
                 "res.participants",
                 "res.start_time",
                 "res.end_time",
@@ -133,9 +138,9 @@
         },
 
         async findByRoomId(roomId) {
-            const rows = await knex("reservations")
-                .where({ room_id: Number(roomId) })
-                .orderBy("start_time", "asc");
+            const rows = await reservationWithRelationsQuery()
+                .where("res.room_id", Number(roomId))
+                .orderBy("res.start_time", "asc");
 
             return rows.map(mapReservation);
         },
@@ -171,7 +176,7 @@
                 const [inserted] = await trx("reservations")
                     .insert({
                         room_id: Number(data.roomId),
-                        reserved_by: data.reservedBy,
+                        user_id: Number(data.userId),
                         participants: data.participants,
                         start_time: data.startTime,
                         end_time: data.endTime,
@@ -192,7 +197,7 @@
             const [row] = await knex("reservations")
                 .insert({
                     room_id: Number(data.roomId),
-                    reserved_by: data.reservedBy,
+                    user_id: Number(data.userId),
                     participants: data.participants,
                     start_time: data.startTime,
                     end_time: data.endTime,

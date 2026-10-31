@@ -4,7 +4,6 @@ const dateTimeSchema = z.string().datetime({ offset: true });
 
 const createReservationSchema = z.object({
     roomId: z.number().int().positive(),
-    reservedBy: z.string().trim().min(3).max(100),
     participants: z.number().int().positive(),
     startTime: dateTimeSchema,
     endTime: dateTimeSchema

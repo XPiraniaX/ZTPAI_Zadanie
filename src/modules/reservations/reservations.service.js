@@ -40,7 +40,7 @@ function createReservationsService(
             return reservation;
         },
 
-        async createReservation(data) {
+        async createReservation(data, userId) {
             const room = await roomsRepository.findById(data.roomId);
 
             if (!room) {
@@ -83,14 +83,22 @@ function createReservationsService(
                 }]);
             }
 
+            const reservationData = {
+                ...data,
+                userId: Number(userId)
+            };
+
             if (
                 typeof reservationsRepository.createWithRoomLock === "function"
             ) {
                 const result =
-                    await reservationsRepository.createWithRoomLock(data, {
-                        checkOverlap:
-                            process.env.DISABLE_APP_OVERLAP_CHECK !== "true"
-                    });
+                    await reservationsRepository.createWithRoomLock(
+                        reservationData,
+                        {
+                            checkOverlap:
+                                process.env.DISABLE_APP_OVERLAP_CHECK !== "true"
+                        }
+                    );
 
                 if (!result) {
                     throw new NotFoundError("Room not found");
@@ -105,7 +113,6 @@ function createReservationsService(
 
                 return result;
             }
-
 
             const existingReservations =
                 await reservationsRepository.findByRoomId(data.roomId);
@@ -130,7 +137,7 @@ function createReservationsService(
                 );
             }
 
-            return reservationsRepository.create(data);
+            return reservationsRepository.create(reservationData);
         },
 
         async cancelReservation(id) {

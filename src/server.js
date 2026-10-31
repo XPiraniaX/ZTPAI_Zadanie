@@ -40,7 +40,11 @@ if (process.env.STORAGE === "memory") {
     usersRepository = createUsersMemoryRepository();
     buildingsRepository = createBuildingsMemoryRepository();
     roomsRepository = createRoomsMemoryRepository(buildingsRepository);
-    reservationsRepository = createReservationsMemoryRepository(roomsRepository);
+
+    reservationsRepository = createReservationsMemoryRepository(
+        roomsRepository,
+        usersRepository
+    );
 } else {
     console.log("Using PostgreSQL repositories");
 

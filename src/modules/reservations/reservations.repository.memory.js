@@ -1,28 +1,22 @@
-﻿function createReservationsRepository(roomsRepository) {
-    const reservations = [
-        {
-            id: 1,
-            roomId: 1,
-            reservedBy: "Rezerwacja rozpoczęta - seed",
-            participants: 2,
-            startTime: "2020-01-01T10:00:00.000Z",
-            endTime: "2020-01-01T11:00:00.000Z",
-            status: "CONFIRMED",
-            createdAt: "2019-12-01T10:00:00.000Z",
-            cancelledAt: null,
-            internalNote: "created via API v2"
-        }
-    ];
+﻿function createReservationsRepository(roomsRepository, usersRepository) {
+    const reservations = [];
 
-    let nextId = 2;
+    let nextId = 1;
 
     async function mapReservation(reservation) {
         if (!reservation) return null;
 
         const room = await roomsRepository.findById(reservation.roomId);
+        const user = await usersRepository.findById(reservation.userId);
 
         return {
             ...reservation,
+            user: user
+                ? {
+                    id: user.id,
+                    email: user.email
+                }
+                : null,
             room: room
                 ? {
                     id: room.id,
@@ -108,9 +102,7 @@
                         new Date(b[property]).getTime();
                 }
 
-                if (descending) {
-                    comparison *= -1;
-                }
+                if (descending) comparison *= -1;
 
                 return comparison !== 0
                     ? comparison
@@ -147,14 +139,13 @@
             const reservation = {
                 id: nextId++,
                 roomId: Number(data.roomId),
-                reservedBy: data.reservedBy,
+                userId: Number(data.userId),
                 participants: data.participants,
                 startTime: new Date(data.startTime).toISOString(),
                 endTime: new Date(data.endTime).toISOString(),
                 status: "CONFIRMED",
                 createdAt: new Date().toISOString(),
-                cancelledAt: null,
-                internalNote: "created via API v2"
+                cancelledAt: null
             };
 
             reservations.push(reservation);

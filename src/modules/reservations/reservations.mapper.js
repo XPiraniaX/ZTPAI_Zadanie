@@ -16,7 +16,7 @@
                     : null
             }
             : null,
-        reservedBy: reservation.reservedBy,
+        user: reservation.user,
         participants: reservation.participants,
         startTime: toIsoOrNull(reservation.startTime),
         endTime: toIsoOrNull(reservation.endTime),

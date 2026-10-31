@@ -5,6 +5,7 @@ const createBuildingsRoutes = require("./modules/buildings/buildings.routes");
 const createRoomsRoutes = require("./modules/rooms/rooms.routes");
 const createReservationsRoutes = require("./modules/reservations/reservations.routes");
 
+const authenticate = require("./middleware/authenticate");
 const requestLogger = require("./middleware/requestLogger");
 const errorHandler = require("./middleware/errorHandler");
 const NotFoundError = require("./errors/NotFoundError");
@@ -20,10 +21,18 @@ function createApp({
     app.use(requestLogger);
     app.use(express.json());
 
-    app.use(
-        "/api/auth",
-        createAuthRoutes(usersRepository)
-    );
+    app.use("/api/auth", createAuthRoutes(usersRepository));
+
+    app.use((req, res, next) => {
+        if (
+            req.path === "/api/docs" ||
+            req.path.startsWith("/api/docs/")
+        ) {
+            return next();
+        }
+
+        return authenticate(req, res, next);
+    });
 
     app.use(
         "/api/buildings",
@@ -37,7 +46,10 @@ function createApp({
 
     app.use(
         "/api/reservations",
-        createReservationsRoutes(reservationsRepository, roomsRepository)
+        createReservationsRoutes(
+            reservationsRepository,
+            roomsRepository
+        )
     );
 
     app.use((req, res, next) => {
