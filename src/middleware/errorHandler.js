@@ -4,10 +4,21 @@ function errorHandler(err, req, res, next) {
     if (res.headersSent) {
         return next(err);
     }
+
     if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
         err = new AppError("Invalid JSON", {
             statusCode: 400,
             code: "INVALID_JSON"
+        });
+    }
+
+    if (err.code === "23P01") {
+        return res.status(409).json({
+            error: {
+                code: "ROOM_ALREADY_BOOKED",
+                message: "Room is already booked for this time",
+                requestId: req.id
+            }
         });
     }
 

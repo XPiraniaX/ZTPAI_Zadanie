@@ -83,6 +83,30 @@ function createReservationsService(
                 }]);
             }
 
+            if (
+                typeof reservationsRepository.createWithRoomLock === "function"
+            ) {
+                const result =
+                    await reservationsRepository.createWithRoomLock(data, {
+                        checkOverlap:
+                            process.env.DISABLE_APP_OVERLAP_CHECK !== "true"
+                    });
+
+                if (!result) {
+                    throw new NotFoundError("Room not found");
+                }
+
+                if (result.conflict) {
+                    throw new ConflictError(
+                        "Room is already booked for this time",
+                        "ROOM_ALREADY_BOOKED"
+                    );
+                }
+
+                return result;
+            }
+
+
             const existingReservations =
                 await reservationsRepository.findByRoomId(data.roomId);
 

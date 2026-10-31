@@ -28,8 +28,8 @@
         return reservation;
     }
 
-    function reservationWithRelationsQuery() {
-        return knex("reservations as res")
+    function reservationWithRelationsQuery(db = knex) {
+        return db("reservations as res")
             .join("rooms as room", "room.id", "res.room_id")
             .join("buildings as building", "building.id", "room.building_id")
             .select(
@@ -62,12 +62,10 @@
             query.where("res.status", filters.status);
         }
 
-        // Rezerwacja musi kończyć się po początku filtrowanego przedziału.
         if (filters.from !== undefined) {
             query.where("res.end_time", ">", filters.from);
         }
 
-        // Rezerwacja musi zaczynać się przed końcem filtrowanego przedziału.
         if (filters.to !== undefined) {
             query.where("res.start_time", "<", filters.to);
         }
@@ -102,8 +100,6 @@
 
             const sortColumn = SORT_COLUMNS[sortName];
 
-            // Walidacja sortowania jest w Zod, ale whitelistę
-            // zabezpieczamy również na poziomie repozytorium.
             if (!sortColumn) {
                 throw new Error("Unsupported reservation sort column");
             }
@@ -142,6 +138,54 @@
                 .orderBy("start_time", "asc");
 
             return rows.map(mapReservation);
+        },
+
+        async createWithRoomLock(data, options = {}) {
+            const checkOverlap = options.checkOverlap !== false;
+
+            return knex.transaction(async (trx) => {
+                const room = await trx("rooms")
+                    .where({ id: Number(data.roomId) })
+                    .forUpdate()
+                    .first("id");
+
+                if (!room) {
+                    return null;
+                }
+
+                if (checkOverlap) {
+                    const overlappingReservation = await trx("reservations")
+                        .where({
+                            room_id: Number(data.roomId),
+                            status: "CONFIRMED"
+                        })
+                        .where("start_time", "<", data.endTime)
+                        .where("end_time", ">", data.startTime)
+                        .first("id");
+
+                    if (overlappingReservation) {
+                        return { conflict: true };
+                    }
+                }
+
+                const [inserted] = await trx("reservations")
+                    .insert({
+                        room_id: Number(data.roomId),
+                        reserved_by: data.reservedBy,
+                        participants: data.participants,
+                        start_time: data.startTime,
+                        end_time: data.endTime,
+                        status: "CONFIRMED",
+                        cancelled_at: null
+                    })
+                    .returning("id");
+
+                const row = await reservationWithRelationsQuery(trx)
+                    .where("res.id", inserted.id)
+                    .first();
+
+                return mapReservation(row);
+            });
         },
 
         async create(data) {
