@@ -5,12 +5,15 @@
 function createReservationsController(reservationsService) {
     return {
         async getAll(req, res) {
-            const { roomId } = req.validated.query;
+            const result =
+                await reservationsService.getAllReservations(
+                    req.validated.query
+                );
 
-            const reservations =
-                await reservationsService.getAllReservations(roomId);
-
-            res.json(reservations.map(toReservationResponse));
+            res.json({
+                data: result.data.map(toReservationResponse),
+                meta: result.meta
+            });
         },
 
         async getById(req, res) {

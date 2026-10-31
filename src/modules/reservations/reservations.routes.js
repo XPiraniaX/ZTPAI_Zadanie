@@ -1,15 +1,19 @@
 ﻿const express = require("express");
+
 const {
     createReservationsService
 } = require("./reservations.service");
+
 const {
     createReservationsController
 } = require("./reservations.controller");
+
 const validate = require("../../middleware/validate");
+
 const {
     createReservationSchema,
     reservationIdSchema,
-    roomIdQuerySchema
+    reservationQuerySchema
 } = require("./reservations.schemas");
 
 function createReservationsRoutes(
@@ -27,7 +31,7 @@ function createReservationsRoutes(
 
     router.get(
         "/",
-        validate({ query: roomIdQuerySchema }),
+        validate({ query: reservationQuerySchema }),
         controller.getAll
     );
 

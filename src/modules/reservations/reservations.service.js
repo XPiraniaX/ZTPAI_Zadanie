@@ -2,7 +2,6 @@
 const ConflictError = require("../../errors/ConflictError");
 const ValidationError = require("../../errors/ValidationError");
 
-
 const ALLOWED_STATUS_TRANSITIONS = {
     CONFIRMED: "CANCELLED",
     CANCELLED: null
@@ -14,12 +13,21 @@ function createReservationsService(
     now = () => new Date()
 ) {
     return {
-        async getAllReservations(roomId) {
-            if (roomId === undefined) {
-                return reservationsRepository.findAll();
-            }
+        async getAllReservations(filters = {}) {
+            const result = await reservationsRepository.findAll(filters);
 
-            return reservationsRepository.findByRoomId(roomId);
+            const page = filters.page || 1;
+            const limit = filters.limit || 20;
+
+            return {
+                data: result.data,
+                meta: {
+                    page,
+                    limit,
+                    total: result.total,
+                    totalPages: Math.ceil(result.total / limit)
+                }
+            };
         },
 
         async getReservationById(id) {

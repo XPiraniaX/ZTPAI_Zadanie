@@ -1,5 +1,4 @@
-﻿
-function createReservationsRepository(knex) {
+﻿function createReservationsRepository(knex) {
     function mapReservation(row) {
         if (!row) return null;
 
@@ -50,12 +49,83 @@ function createReservationsRepository(knex) {
             );
     }
 
-    return {
-        async findAll() {
-            const rows = await reservationWithRelationsQuery()
-                .orderBy("res.id", "asc");
+    function applyFilters(query, filters) {
+        if (filters.roomId !== undefined) {
+            query.where("res.room_id", filters.roomId);
+        }
 
-            return rows.map(mapReservation);
+        if (filters.buildingId !== undefined) {
+            query.where("room.building_id", filters.buildingId);
+        }
+
+        if (filters.status !== undefined) {
+            query.where("res.status", filters.status);
+        }
+
+        // Rezerwacja musi kończyć się po początku filtrowanego przedziału.
+        if (filters.from !== undefined) {
+            query.where("res.end_time", ">", filters.from);
+        }
+
+        // Rezerwacja musi zaczynać się przed końcem filtrowanego przedziału.
+        if (filters.to !== undefined) {
+            query.where("res.start_time", "<", filters.to);
+        }
+
+        return query;
+    }
+
+    const SORT_COLUMNS = {
+        startTime: "res.start_time",
+        createdAt: "res.created_at",
+        participants: "res.participants"
+    };
+
+    return {
+        async findAll(filters = {}) {
+            const countQuery = knex("reservations as res")
+                .join("rooms as room", "room.id", "res.room_id");
+
+            applyFilters(countQuery, filters);
+
+            const countResult = await countQuery
+                .count({ total: "res.id" })
+                .first();
+
+            const total = Number(countResult.total);
+
+            const sortField = filters.sort || "startTime";
+            const descending = sortField.startsWith("-");
+            const sortName = descending
+                ? sortField.substring(1)
+                : sortField;
+
+            const sortColumn = SORT_COLUMNS[sortName];
+
+            // Walidacja sortowania jest w Zod, ale whitelistę
+            // zabezpieczamy również na poziomie repozytorium.
+            if (!sortColumn) {
+                throw new Error("Unsupported reservation sort column");
+            }
+
+            const page = filters.page || 1;
+            const limit = filters.limit || 20;
+            const offset = (page - 1) * limit;
+
+            const rowsQuery = reservationWithRelationsQuery();
+
+            applyFilters(rowsQuery, filters);
+
+            const rows = await rowsQuery
+                .orderBy(sortColumn, descending ? "desc" : "asc")
+                .orderBy("res.id", "asc")
+                .limit(limit)
+                .offset(offset);
+
+            return {
+                data: rows.map(mapReservation),
+                total
+            };
         },
 
         async findById(id) {
