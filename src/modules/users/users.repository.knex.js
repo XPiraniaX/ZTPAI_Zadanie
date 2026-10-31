@@ -30,7 +30,7 @@ function createUsersRepository(knex) {
                 .where({ id: Number(id) })
                 .first();
 
-            return user || null;
+            return mapUser(user);
         }
     };
 }
