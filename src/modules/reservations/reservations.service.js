@@ -1,6 +1,8 @@
-﻿const NotFoundError = require("../../errors/NotFoundError");
+﻿
+const NotFoundError = require("../../errors/NotFoundError");
 const ConflictError = require("../../errors/ConflictError");
 const ValidationError = require("../../errors/ValidationError");
+const config = require("../../config");
 
 const ALLOWED_STATUS_TRANSITIONS = {
     CONFIRMED: "CANCELLED",
@@ -32,8 +34,6 @@ function createReservationsService(
             };
 
             if (currentUser.role === "USER") {
-                // USER zawsze widzi wyłącznie swoje rezerwacje.
-                // Ignorujemy ewentualne userId podane w query.
                 effectiveFilters.userId = Number(currentUser.id);
             }
 
@@ -123,7 +123,7 @@ function createReservationsService(
                         reservationData,
                         {
                             checkOverlap:
-                                process.env.DISABLE_APP_OVERLAP_CHECK !== "true"
+                                config.DISABLE_APP_OVERLAP_CHECK !== "true"
                         }
                     );
 
@@ -176,8 +176,6 @@ function createReservationsService(
                 throw new NotFoundError("Reservation not found");
             }
 
-            // Właściciel albo ADMIN.
-            // Obcy USER otrzymuje 404.
             checkOwnership(reservation, currentUser);
 
             if (reservation.status === "CANCELLED") {
@@ -196,7 +194,6 @@ function createReservationsService(
             const current = now().getTime();
             const start = new Date(reservation.startTime).getTime();
 
-            // Ta reguła obowiązuje również ADMIN-a.
             if (start <= current) {
                 throw new ConflictError(
                     "Reservation has already started",

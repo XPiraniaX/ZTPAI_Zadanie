@@ -1,5 +1,6 @@
 ﻿const express = require("express");
 const authorize = require("../../middleware/authorize");
+const validate = require("../../middleware/validate");
 
 const createBuildingsController = require("./buildings.controller");
 
@@ -9,6 +10,177 @@ const {
     buildingIdSchema
 } = require("./buildings.schemas");
 
+/**
+ * @swagger
+ * /api/buildings:
+ *   get:
+ *     tags:
+ *       - Buildings
+ *     summary: Pobranie listy budynków
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista budynków.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Building'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ *   post:
+ *     tags:
+ *       - Buildings
+ *     summary: Utworzenie budynku (ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BuildingInput'
+ *     responses:
+ *       201:
+ *         description: Budynek został utworzony.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Building'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ * /api/buildings/{id}:
+ *   parameters:
+ *     - in: path
+ *       name: id
+ *       required: true
+ *       schema:
+ *         type: integer
+ *         minimum: 1
+ *       description: Identyfikator budynku.
+ *
+ *   get:
+ *     tags:
+ *       - Buildings
+ *     summary: Pobranie szczegółów budynku
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Szczegóły budynku.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Building'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ *   patch:
+ *     tags:
+ *       - Buildings
+ *     summary: Aktualizacja budynku (ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BuildingPatch'
+ *     responses:
+ *       200:
+ *         description: Budynek został zaktualizowany.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Building'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ *   delete:
+ *     tags:
+ *       - Buildings
+ *     summary: Usunięcie budynku (ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Budynek został usunięty.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ * /api/buildings/{id}/rooms:
+ *   get:
+ *     tags:
+ *       - Buildings
+ *     summary: Pobranie sal należących do budynku
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *         description: Identyfikator budynku.
+ *     responses:
+ *       200:
+ *         description: Lista sal w budynku.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Room'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 function createBuildingsRoutes(buildingsRepository, roomsRepository) {
     const router = express.Router();
 
@@ -17,61 +189,39 @@ function createBuildingsRoutes(buildingsRepository, roomsRepository) {
         roomsRepository
     );
 
-    function validateId(req, res, next) {
-        const result = buildingIdSchema.safeParse(req.params);
+    const validateId = validate({
+        params: buildingIdSchema
+    });
 
-        if (!result.success) {
-            return res.status(400).json({
-                error: "Validation failed",
-                details: result.error.issues
-            });
-        }
-
-        req.params.id = String(result.data.id);
-        next();
-    }
-
-    function validateBody(schema) {
-        return (req, res, next) => {
-            const result = schema.safeParse(req.body);
-
-            if (!result.success) {
-                return res.status(400).json({
-                    error: "Validation failed",
-                    details: result.error.issues
-                });
-            }
-
-            req.body = result.data;
-            next();
-        };
-    }
-
-    // GET – każdy zalogowany użytkownik
     router.get("/", controller.getAllBuildings);
 
-    router.get("/:id/rooms", validateId, controller.getRoomsByBuildingId);
+    router.get(
+        "/:id/rooms",
+        validateId,
+        controller.getRoomsByBuildingId
+    );
 
-    router.get("/:id", validateId, controller.getBuildingById);
+    router.get(
+        "/:id",
+        validateId,
+        controller.getBuildingById
+    );
 
-    // POST – tylko ADMIN
     router.post(
         "/",
         authorize("ADMIN"),
-        validateBody(createBuildingSchema),
+        validate({ body: createBuildingSchema }),
         controller.createBuilding
     );
 
-    // PATCH – tylko ADMIN
     router.patch(
         "/:id",
         authorize("ADMIN"),
         validateId,
-        validateBody(updateBuildingSchema),
+        validate({ body: updateBuildingSchema }),
         controller.updateBuilding
     );
 
-    // DELETE – tylko ADMIN
     router.delete(
         "/:id",
         authorize("ADMIN"),

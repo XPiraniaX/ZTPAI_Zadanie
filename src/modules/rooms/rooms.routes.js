@@ -1,5 +1,6 @@
 ﻿const express = require("express");
 const authorize = require("../../middleware/authorize");
+const validate = require("../../middleware/validate");
 
 const createRoomsController = require("./rooms.controller");
 
@@ -9,6 +10,146 @@ const {
     updateRoomSchema
 } = require("./rooms.schemas");
 
+/**
+ * @swagger
+ * /api/rooms:
+ *   get:
+ *     tags:
+ *       - Rooms
+ *     summary: Pobranie listy sal
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lista sal.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Room'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ *   post:
+ *     tags:
+ *       - Rooms
+ *     summary: Utworzenie sali (ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RoomInput'
+ *     responses:
+ *       201:
+ *         description: Sala została utworzona.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Room'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ * /api/rooms/{id}:
+ *   parameters:
+ *     - in: path
+ *       name: id
+ *       required: true
+ *       schema:
+ *         type: integer
+ *         minimum: 1
+ *       description: Identyfikator sali.
+ *
+ *   get:
+ *     tags:
+ *       - Rooms
+ *     summary: Pobranie szczegółów sali
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Szczegóły sali.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Room'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ *   patch:
+ *     tags:
+ *       - Rooms
+ *     summary: Aktualizacja sali (ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RoomPatch'
+ *     responses:
+ *       200:
+ *         description: Sala została zaktualizowana.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Room'
+ *       400:
+ *         $ref: '#/components/responses/BadRequest'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ *
+ *   delete:
+ *     tags:
+ *       - Rooms
+ *     summary: Usunięcie sali (ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Sala została usunięta.
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       409:
+ *         $ref: '#/components/responses/Conflict'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+
 function createRoomsRoutes(roomsRepository, buildingsRepository) {
     const router = express.Router();
 
@@ -17,59 +158,33 @@ function createRoomsRoutes(roomsRepository, buildingsRepository) {
         buildingsRepository
     );
 
-    function validateId(req, res, next) {
-        const result = roomIdSchema.safeParse(req.params);
+    const validateId = validate({
+        params: roomIdSchema
+    });
 
-        if (!result.success) {
-            return res.status(400).json({
-                error: "Validation failed",
-                details: result.error.issues
-            });
-        }
-
-        req.params.id = String(result.data.id);
-        next();
-    }
-
-    function validateBody(schema) {
-        return (req, res, next) => {
-            const result = schema.safeParse(req.body);
-
-            if (!result.success) {
-                return res.status(400).json({
-                    error: "Validation failed",
-                    details: result.error.issues
-                });
-            }
-
-            req.body = result.data;
-            next();
-        };
-    }
-
-    // GET – każdy zalogowany użytkownik
     router.get("/", controller.getAllRooms);
 
-    router.get("/:id", validateId, controller.getRoomById);
+    router.get(
+        "/:id",
+        validateId,
+        controller.getRoomById
+    );
 
-    // POST – tylko ADMIN
     router.post(
         "/",
         authorize("ADMIN"),
-        validateBody(createRoomSchema),
+        validate({ body: createRoomSchema }),
         controller.createRoom
     );
 
-    // PATCH – tylko ADMIN
     router.patch(
         "/:id",
         authorize("ADMIN"),
         validateId,
-        validateBody(updateRoomSchema),
+        validate({ body: updateRoomSchema }),
         controller.updateRoom
     );
 
-    // DELETE – tylko ADMIN
     router.delete(
         "/:id",
         authorize("ADMIN"),

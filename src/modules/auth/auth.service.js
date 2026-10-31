@@ -3,6 +3,7 @@ const jwt = require("jsonwebtoken");
 
 const AppError = require("../../errors/AppError");
 const ConflictError = require("../../errors/ConflictError");
+const config = require("../../config");
 
 function createAuthService(usersRepository) {
     async function register(data) {
@@ -50,12 +51,8 @@ function createAuthService(usersRepository) {
             });
         }
 
-        const expiresIn = process.env.JWT_EXPIRES_IN || "15m";
-        const secret = process.env.JWT_SECRET;
-
-        if (!secret) {
-            throw new Error("JWT_SECRET is not configured");
-        }
+        const expiresIn = config.JWT_EXPIRES_IN;
+        const secret = config.JWT_SECRET;
 
         const accessToken = jwt.sign(
             {

@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+﻿const config = require("./config");
 
 const { createApp } = require("./app");
 
@@ -34,12 +34,16 @@ let buildingsRepository;
 let roomsRepository;
 let reservationsRepository;
 
-if (process.env.STORAGE === "memory") {
+// Wybór sposobu przechowywania danych
+if (config.STORAGE === "memory") {
     console.log("Using in-memory repositories");
 
     usersRepository = createUsersMemoryRepository();
     buildingsRepository = createBuildingsMemoryRepository();
-    roomsRepository = createRoomsMemoryRepository(buildingsRepository);
+
+    roomsRepository = createRoomsMemoryRepository(
+        buildingsRepository
+    );
 
     reservationsRepository = createReservationsMemoryRepository(
         roomsRepository,
@@ -49,14 +53,17 @@ if (process.env.STORAGE === "memory") {
     console.log("Using PostgreSQL repositories");
 
     const knexConfig = require("../knexfile");
+
     knex = require("knex")(knexConfig.development);
 
     usersRepository = createUsersKnexRepository(knex);
     buildingsRepository = createBuildingsKnexRepository(knex);
     roomsRepository = createRoomsKnexRepository(knex);
+
     reservationsRepository = createReservationsKnexRepository(knex);
 }
 
+// Utworzenie aplikacji Express
 const app = createApp({
     usersRepository,
     buildingsRepository,
@@ -64,12 +71,12 @@ const app = createApp({
     reservationsRepository
 });
 
-const PORT = process.env.PORT || 3000;
-
-const server = app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Uruchomienie serwera
+const server = app.listen(config.PORT, () => {
+    console.log(`Server running on http://localhost:${config.PORT}`);
 });
 
+// Bezpieczne zamykanie połączenia z bazą
 function shutdown() {
     server.close(async () => {
         if (knex) {

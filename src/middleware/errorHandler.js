@@ -1,4 +1,5 @@
-﻿const AppError = require("../errors/AppError");
+﻿
+const AppError = require("../errors/AppError");
 
 function errorHandler(err, req, res, next) {
     if (res.headersSent) {
@@ -13,23 +14,21 @@ function errorHandler(err, req, res, next) {
     }
 
     if (err.code === "23P01") {
-        return res.status(409).json({
-            error: {
-                code: "ROOM_ALREADY_BOOKED",
-                message: "Room is already booked for this time",
-                requestId: req.id
+        err = new AppError(
+            "Room is already booked for this time",
+            {
+                statusCode: 409,
+                code: "ROOM_ALREADY_BOOKED"
             }
-        });
-    }
-
-    if (err.code === "23505") {
-        return res.status(409).json({
-            error: {
-                code: "CONFLICT",
-                message: "A room with this name already exists in this building",
-                requestId: req.id
+        );
+    } else if (err.code === "23505") {
+        err = new AppError(
+            "A room with this name already exists in this building",
+            {
+                statusCode: 409,
+                code: "CONFLICT"
             }
-        });
+        );
     }
 
     const isOperational = err instanceof AppError;
@@ -59,7 +58,7 @@ function errorHandler(err, req, res, next) {
 
     error.requestId = req.id;
 
-    res.status(statusCode).json({ error });
+    return res.status(statusCode).json({ error });
 }
 
 module.exports = errorHandler;

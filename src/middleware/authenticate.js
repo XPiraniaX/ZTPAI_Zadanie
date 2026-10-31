@@ -1,5 +1,6 @@
 ﻿const jwt = require("jsonwebtoken");
 const AppError = require("../errors/AppError");
+const config = require("../config");
 
 function authenticate(req, res, next) {
     const authorization = req.headers.authorization;
@@ -26,7 +27,7 @@ function authenticate(req, res, next) {
     try {
         const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET,
+            config.JWT_SECRET,
             { algorithms: ["HS256"] }
         );
 

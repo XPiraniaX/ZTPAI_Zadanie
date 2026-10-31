@@ -1,10 +1,10 @@
-﻿require("dotenv").config();
+﻿const config = require("./src/config");
 
 /** @type {import("knex").Knex.Config} */
 module.exports = {
     development: {
         client: "pg",
-        connection: process.env.DATABASE_URL,
+        connection: config.DATABASE_URL,
 
         migrations: {
             directory: "./migrations",
