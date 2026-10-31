@@ -1,8 +1,12 @@
 ﻿const express = require("express");
+const authorize = require("../../middleware/authorize");
+
 const createRoomsController = require("./rooms.controller");
+
 const {
     roomIdSchema,
-    createRoomSchema
+    createRoomSchema,
+    updateRoomSchema
 } = require("./rooms.schemas");
 
 function createRoomsRoutes(roomsRepository, buildingsRepository) {
@@ -13,9 +17,7 @@ function createRoomsRoutes(roomsRepository, buildingsRepository) {
         buildingsRepository
     );
 
-    router.get("/", controller.getAllRooms);
-
-    router.get("/:id", (req, res, next) => {
+    function validateId(req, res, next) {
         const result = roomIdSchema.safeParse(req.params);
 
         if (!result.success) {
@@ -25,22 +27,55 @@ function createRoomsRoutes(roomsRepository, buildingsRepository) {
             });
         }
 
+        req.params.id = String(result.data.id);
         next();
-    }, controller.getRoomById);
+    }
 
-    router.post("/", (req, res, next) => {
-        const result = createRoomSchema.safeParse(req.body);
+    function validateBody(schema) {
+        return (req, res, next) => {
+            const result = schema.safeParse(req.body);
 
-        if (!result.success) {
-            return res.status(400).json({
-                error: "Validation failed",
-                details: result.error.issues
-            });
-        }
+            if (!result.success) {
+                return res.status(400).json({
+                    error: "Validation failed",
+                    details: result.error.issues
+                });
+            }
 
-        req.body = result.data;
-        next();
-    }, controller.createRoom);
+            req.body = result.data;
+            next();
+        };
+    }
+
+    // GET – każdy zalogowany użytkownik
+    router.get("/", controller.getAllRooms);
+
+    router.get("/:id", validateId, controller.getRoomById);
+
+    // POST – tylko ADMIN
+    router.post(
+        "/",
+        authorize("ADMIN"),
+        validateBody(createRoomSchema),
+        controller.createRoom
+    );
+
+    // PATCH – tylko ADMIN
+    router.patch(
+        "/:id",
+        authorize("ADMIN"),
+        validateId,
+        validateBody(updateRoomSchema),
+        controller.updateRoom
+    );
+
+    // DELETE – tylko ADMIN
+    router.delete(
+        "/:id",
+        authorize("ADMIN"),
+        validateId,
+        controller.deleteRoom
+    );
 
     return router;
 }

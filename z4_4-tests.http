@@ -1,0 +1,262 @@
+﻿
+@baseUrl = http://localhost:3000
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiVVNFUiIsImlhdCI6MTc5MzQ2NjI5MiwiZXhwIjoxNzkzNDY3MTkyLCJzdWIiOiIyIn0.xK0amn58dwM6jjNYnd9ylLGlCOn-X13LuV3SYCgGe4o
+@user2Token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiVVNFUiIsImlhdCI6MTc5MzQ2NjIxOSwiZXhwIjoxNzkzNDY3MTE5LCJzdWIiOiIxMiJ9.UeWZkbTiOYzXt59MqBqWWa8-Q789dBGKXmXM0yPmlQg
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiQURNSU4iLCJpYXQiOjE3OTM0NjYyMzcsImV4cCI6MTc5MzQ2NzEzNywic3ViIjoiNSJ9.me4m0Yu02swABpCLePTVt6Csmz5_EGCNWekChJZ35n0
+
+### 1. GET /api/buildings — BRAK TOKENU — oczekiwane: 401
+GET {{baseUrl}}/api/buildings
+
+### 2. GET /api/buildings — USER A — oczekiwane: 200
+GET {{baseUrl}}/api/buildings
+Authorization: Bearer {{userToken}}
+
+### 3. GET /api/buildings — USER B — oczekiwane: 200
+GET {{baseUrl}}/api/buildings
+Authorization: Bearer {{user2Token}}
+
+### 4. GET /api/buildings — ADMIN — oczekiwane: 200
+GET {{baseUrl}}/api/buildings
+Authorization: Bearer {{adminToken}}
+
+### 5. POST /api/buildings — BRAK TOKENU — oczekiwane: 401
+POST {{baseUrl}}/api/buildings
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 TEST 20261031 A01",
+  "address": "Testowa 101, Kraków"
+}
+
+### 6. POST /api/buildings — USER A — oczekiwane: 403
+POST {{baseUrl}}/api/buildings
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 TEST 20261031 A02",
+  "address": "Testowa 102, Kraków"
+}
+
+### 7. POST /api/buildings — USER B — oczekiwane: 403
+POST {{baseUrl}}/api/buildings
+Authorization: Bearer {{user2Token}}
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 TEST 20261031 A03",
+  "address": "Testowa 103, Kraków"
+}
+
+### 8. POST /api/buildings — ADMIN — oczekiwane: 201
+POST {{baseUrl}}/api/buildings
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 TEST 20261031 A04",
+  "address": "Testowa 104, Kraków"
+}
+
+### 9. PATCH /api/buildings/1 — BRAK TOKENU — oczekiwane: 401
+PATCH {{baseUrl}}/api/buildings/1
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 zmieniony"
+}
+
+### 10. PATCH /api/buildings/1 — USER A — oczekiwane: 403
+PATCH {{baseUrl}}/api/buildings/1
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 zmieniony"
+}
+
+### 11. PATCH /api/buildings/1 — USER B — oczekiwane: 403
+PATCH {{baseUrl}}/api/buildings/1
+Authorization: Bearer {{user2Token}}
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 zmieniony"
+}
+
+### 12. PATCH /api/buildings/1 — ADMIN — oczekiwane: 200
+PATCH {{baseUrl}}/api/buildings/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Budynek Z4 zmieniony"
+}
+
+### 13. DELETE /api/buildings/1 — BRAK TOKENU — oczekiwane: 401
+DELETE {{baseUrl}}/api/buildings/1
+
+### 14. DELETE /api/buildings/1 — USER A — oczekiwane: 403
+DELETE {{baseUrl}}/api/buildings/1
+Authorization: Bearer {{userToken}}
+
+### 15. DELETE /api/buildings/1 — USER B — oczekiwane: 403
+DELETE {{baseUrl}}/api/buildings/1
+Authorization: Bearer {{user2Token}}
+
+### 16. DELETE /api/buildings/1 — ADMIN — oczekiwane: 200 lub 409
+DELETE {{baseUrl}}/api/buildings/1
+Authorization: Bearer {{adminToken}}
+
+### 17. GET /api/rooms — BRAK TOKENU — oczekiwane: 401
+GET {{baseUrl}}/api/rooms
+
+### 18. GET /api/rooms — USER A — oczekiwane: 200
+GET {{baseUrl}}/api/rooms
+Authorization: Bearer {{userToken}}
+
+### 19. GET /api/rooms — USER B — oczekiwane: 200
+GET {{baseUrl}}/api/rooms
+Authorization: Bearer {{user2Token}}
+
+### 20. GET /api/rooms — ADMIN — oczekiwane: 200
+GET {{baseUrl}}/api/rooms
+Authorization: Bearer {{adminToken}}
+
+### 21. POST /api/rooms — BRAK TOKENU — oczekiwane: 401
+POST {{baseUrl}}/api/rooms
+Content-Type: application/json
+
+{
+  "buildingId": 1,
+  "name": "Pokój Z4 TEST 20261031 B01",
+  "capacity": 10
+}
+
+### 22. POST /api/rooms — USER A — oczekiwane: 403
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "buildingId": 1,
+  "name": "Pokój Z4 TEST 20261031 B02",
+  "capacity": 10
+}
+
+### 23. POST /api/rooms — USER B — oczekiwane: 403
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{user2Token}}
+Content-Type: application/json
+
+{
+  "buildingId": 1,
+  "name": "Pokój Z4 TEST 20261031 B03",
+  "capacity": 10
+}
+
+### 24. POST /api/rooms — ADMIN — oczekiwane: 201
+POST {{baseUrl}}/api/rooms
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "buildingId": 1,
+  "name": "Pokój Z4 TEST 20261031 B04",
+  "capacity": 10
+}
+
+### 25. PATCH /api/rooms/1 — BRAK TOKENU — oczekiwane: 401
+PATCH {{baseUrl}}/api/rooms/1
+Content-Type: application/json
+
+{
+  "name": "Pokój Z4 zmieniony"
+}
+
+### 26. PATCH /api/rooms/1 — USER A — oczekiwane: 403
+PATCH {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "name": "Pokój Z4 zmieniony"
+}
+
+### 27. PATCH /api/rooms/1 — USER B — oczekiwane: 403
+PATCH {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{user2Token}}
+Content-Type: application/json
+
+{
+  "name": "Pokój Z4 zmieniony"
+}
+
+### 28. PATCH /api/rooms/1 — ADMIN — oczekiwane: 200
+PATCH {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Pokój Z4 zmieniony"
+}
+
+### 29. DELETE /api/rooms/1 — BRAK TOKENU — oczekiwane: 401
+DELETE {{baseUrl}}/api/rooms/1
+
+### 30. DELETE /api/rooms/1 — USER A — oczekiwane: 403
+DELETE {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{userToken}}
+
+### 31. DELETE /api/rooms/1 — USER B — oczekiwane: 403
+DELETE {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{user2Token}}
+
+### 32. DELETE /api/rooms/1 — ADMIN — oczekiwane: 200 lub 409
+DELETE {{baseUrl}}/api/rooms/1
+Authorization: Bearer {{adminToken}}
+
+### 33. GET /api/reservations — BRAK TOKENU — oczekiwane: 401
+GET {{baseUrl}}/api/reservations
+
+### 34. GET /api/reservations — USER A — oczekiwane: 200
+GET {{baseUrl}}/api/reservations
+Authorization: Bearer {{userToken}}
+
+### 35. GET /api/reservations — USER B — oczekiwane: 200 (tylko własne rezerwacje)
+GET {{baseUrl}}/api/reservations
+Authorization: Bearer {{user2Token}}
+
+### 36. GET /api/reservations — ADMIN — oczekiwane: 200
+GET {{baseUrl}}/api/reservations
+Authorization: Bearer {{adminToken}}
+
+### 37. GET /api/reservations/6 — BRAK TOKENU — oczekiwane: 401
+GET {{baseUrl}}/api/reservations/6
+
+### 38. GET /api/reservations/6 — USER A, WŁAŚCICIEL — oczekiwane: 200
+GET {{baseUrl}}/api/reservations/6
+Authorization: Bearer {{userToken}}
+
+### 39. GET /api/reservations/6 — USER B, OBCY — oczekiwane: 404
+GET {{baseUrl}}/api/reservations/6
+Authorization: Bearer {{user2Token}}
+
+### 40. GET /api/reservations/6 — ADMIN — oczekiwane: 200
+GET {{baseUrl}}/api/reservations/6
+Authorization: Bearer {{adminToken}}
+
+### 41. PATCH /api/reservations/6/cancel — BRAK TOKENU — oczekiwane: 401
+PATCH {{baseUrl}}/api/reservations/6/cancel
+
+### 42. PATCH /api/reservations/6/cancel — USER A, WŁAŚCICIEL — oczekiwane: 200
+PATCH {{baseUrl}}/api/reservations/6/cancel
+Authorization: Bearer {{userToken}}
+
+### 43. PATCH /api/reservations/6/cancel — USER B, OBCY — oczekiwane: 404
+PATCH {{baseUrl}}/api/reservations/6/cancel
+Authorization: Bearer {{user2Token}}
+
+### 44. PATCH /api/reservations/6/cancel — ADMIN — oczekiwane: 200 lub błąd reguły anulowania
+PATCH {{baseUrl}}/api/reservations/6/cancel
+Authorization: Bearer {{adminToken}}

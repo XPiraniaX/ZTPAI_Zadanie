@@ -12,12 +12,36 @@ function createReservationsService(
     roomsRepository,
     now = () => new Date()
 ) {
-    return {
-        async getAllReservations(filters = {}) {
-            const result = await reservationsRepository.findAll(filters);
+    function checkOwnership(reservation, currentUser) {
+        if (currentUser.role === "ADMIN") {
+            return;
+        }
 
-            const page = filters.page || 1;
-            const limit = filters.limit || 20;
+        const ownerId = Number(reservation.user?.id);
+        const currentUserId = Number(currentUser.id);
+
+        if (ownerId !== currentUserId) {
+            throw new NotFoundError("Reservation not found");
+        }
+    }
+
+    return {
+        async getAllReservations(filters = {}, currentUser) {
+            const effectiveFilters = {
+                ...filters
+            };
+
+            if (currentUser.role === "USER") {
+                // USER zawsze widzi wyłącznie swoje rezerwacje.
+                // Ignorujemy ewentualne userId podane w query.
+                effectiveFilters.userId = Number(currentUser.id);
+            }
+
+            const result =
+                await reservationsRepository.findAll(effectiveFilters);
+
+            const page = effectiveFilters.page || 1;
+            const limit = effectiveFilters.limit || 20;
 
             return {
                 data: result.data,
@@ -30,12 +54,15 @@ function createReservationsService(
             };
         },
 
-        async getReservationById(id) {
-            const reservation = await reservationsRepository.findById(id);
+        async getReservationById(id, currentUser) {
+            const reservation =
+                await reservationsRepository.findById(id);
 
             if (!reservation) {
                 throw new NotFoundError("Reservation not found");
             }
+
+            checkOwnership(reservation, currentUser);
 
             return reservation;
         },
@@ -124,6 +151,7 @@ function createReservationsService(
 
                 const existingStart =
                     new Date(reservation.startTime).getTime();
+
                 const existingEnd =
                     new Date(reservation.endTime).getTime();
 
@@ -140,12 +168,17 @@ function createReservationsService(
             return reservationsRepository.create(reservationData);
         },
 
-        async cancelReservation(id) {
-            const reservation = await reservationsRepository.findById(id);
+        async cancelReservation(id, currentUser) {
+            const reservation =
+                await reservationsRepository.findById(id);
 
             if (!reservation) {
                 throw new NotFoundError("Reservation not found");
             }
+
+            // Właściciel albo ADMIN.
+            // Obcy USER otrzymuje 404.
+            checkOwnership(reservation, currentUser);
 
             if (reservation.status === "CANCELLED") {
                 return reservation;
@@ -163,6 +196,7 @@ function createReservationsService(
             const current = now().getTime();
             const start = new Date(reservation.startTime).getTime();
 
+            // Ta reguła obowiązuje również ADMIN-a.
             if (start <= current) {
                 throw new ConflictError(
                     "Reservation has already started",

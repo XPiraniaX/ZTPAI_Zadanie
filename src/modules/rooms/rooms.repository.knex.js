@@ -1,5 +1,4 @@
-﻿
-function createRoomsRepository(knex) {
+﻿function createRoomsRepository(knex) {
     function mapRoom(row) {
         if (!row) return null;
 
@@ -41,6 +40,7 @@ function createRoomsRepository(knex) {
                 .where("r.id", Number(id))
                 .select(
                     "r.id",
+                    "r.building_id",
                     "r.name",
                     "r.capacity",
                     "b.id as joined_building_id",
@@ -48,7 +48,18 @@ function createRoomsRepository(knex) {
                 )
                 .first();
 
-            return mapRoomWithBuilding(row);
+            if (!row) return null;
+
+            return {
+                id: row.id,
+                buildingId: row.building_id,
+                name: row.name,
+                capacity: row.capacity,
+                building: {
+                    id: row.joined_building_id,
+                    name: row.joined_building_name
+                }
+            };
         },
 
         async findByBuildingId(buildingId) {
@@ -70,6 +81,37 @@ function createRoomsRepository(knex) {
                 .returning("*");
 
             return mapRoom(row);
+        },
+
+        async update(id, data) {
+            const updateData = {};
+
+            if (data.buildingId !== undefined) {
+                updateData.building_id = Number(data.buildingId);
+            }
+
+            if (data.name !== undefined) {
+                updateData.name = data.name;
+            }
+
+            if (data.capacity !== undefined) {
+                updateData.capacity = data.capacity;
+            }
+
+            const [row] = await knex("rooms")
+                .where({ id: Number(id) })
+                .update(updateData)
+                .returning("*");
+
+            return mapRoom(row);
+        },
+
+        async delete(id) {
+            const deleted = await knex("rooms")
+                .where({ id: Number(id) })
+                .del();
+
+            return deleted > 0;
         }
     };
 }

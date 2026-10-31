@@ -63,6 +63,10 @@
             query.where("room.building_id", filters.buildingId);
         }
 
+        if (filters.userId !== undefined) {
+            query.where("res.user_id", filters.userId);
+        }
+
         if (filters.status !== undefined) {
             query.where("res.status", filters.status);
         }

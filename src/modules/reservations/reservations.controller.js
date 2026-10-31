@@ -8,7 +8,8 @@ function createReservationsController(reservationsService) {
             try {
                 const result =
                     await reservationsService.getAllReservations(
-                        req.validated.query
+                        req.validated.query,
+                        req.user
                     );
 
                 res.json({
@@ -24,7 +25,8 @@ function createReservationsController(reservationsService) {
             try {
                 const reservation =
                     await reservationsService.getReservationById(
-                        req.validated.params.id
+                        req.validated.params.id,
+                        req.user
                     );
 
                 res.json(toReservationResponse(reservation));
@@ -53,7 +55,8 @@ function createReservationsController(reservationsService) {
             try {
                 const reservation =
                     await reservationsService.cancelReservation(
-                        req.validated.params.id
+                        req.validated.params.id,
+                        req.user
                     );
 
                 res.json(toReservationResponse(reservation));

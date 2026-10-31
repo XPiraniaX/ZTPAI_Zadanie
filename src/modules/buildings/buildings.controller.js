@@ -20,6 +20,7 @@ function createBuildingsController(buildingsRepository, roomsRepository) {
             const building = await buildingsService.getBuildingById(
                 req.params.id
             );
+
             res.status(200).json(building);
         } catch (error) {
             next(error);
@@ -31,6 +32,7 @@ function createBuildingsController(buildingsRepository, roomsRepository) {
             const rooms = await buildingsService.getRoomsByBuildingId(
                 req.params.id
             );
+
             res.status(200).json(rooms);
         } catch (error) {
             next(error);
@@ -46,11 +48,38 @@ function createBuildingsController(buildingsRepository, roomsRepository) {
         }
     }
 
+    async function updateBuilding(req, res, next) {
+        try {
+            const building = await buildingsService.updateBuilding(
+                req.params.id,
+                req.body
+            );
+
+            res.status(200).json(building);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async function deleteBuilding(req, res, next) {
+        try {
+            const result = await buildingsService.deleteBuilding(
+                req.params.id
+            );
+
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     return {
         getAllBuildings,
         getBuildingById,
         getRoomsByBuildingId,
-        createBuilding
+        createBuilding,
+        updateBuilding,
+        deleteBuilding
     };
 }
 

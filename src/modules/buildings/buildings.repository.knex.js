@@ -67,6 +67,33 @@
                 .returning("*");
 
             return mapBuilding(row);
+        },
+
+        async update(id, data) {
+            const updateData = {};
+
+            if (data.name !== undefined) {
+                updateData.name = data.name;
+            }
+
+            if (data.address !== undefined) {
+                updateData.address = data.address;
+            }
+
+            const [row] = await knex("buildings")
+                .where({ id: Number(id) })
+                .update(updateData)
+                .returning("*");
+
+            return mapBuilding(row);
+        },
+
+        async delete(id) {
+            const deleted = await knex("buildings")
+                .where({ id: Number(id) })
+                .del();
+
+            return deleted > 0;
         }
     };
 }
