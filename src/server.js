@@ -3,6 +3,9 @@
 const { createApp } = require("./app");
 
 // Repozytoria in-memory
+const { createUsersRepository: createUsersMemoryRepository } =
+    require("./modules/users/users.repository.memory");
+
 const { createBuildingsRepository: createBuildingsMemoryRepository } =
     require("./modules/buildings/buildings.repository.memory");
 
@@ -13,6 +16,9 @@ const { createReservationsRepository: createReservationsMemoryRepository } =
     require("./modules/reservations/reservations.repository.memory");
 
 // Repozytoria Knex
+const { createUsersRepository: createUsersKnexRepository } =
+    require("./modules/users/users.repository.knex");
+
 const { createBuildingsRepository: createBuildingsKnexRepository } =
     require("./modules/buildings/buildings.repository.knex");
 
@@ -23,6 +29,7 @@ const { createReservationsRepository: createReservationsKnexRepository } =
     require("./modules/reservations/reservations.repository.knex");
 
 let knex;
+let usersRepository;
 let buildingsRepository;
 let roomsRepository;
 let reservationsRepository;
@@ -30,6 +37,7 @@ let reservationsRepository;
 if (process.env.STORAGE === "memory") {
     console.log("Using in-memory repositories");
 
+    usersRepository = createUsersMemoryRepository();
     buildingsRepository = createBuildingsMemoryRepository();
     roomsRepository = createRoomsMemoryRepository(buildingsRepository);
     reservationsRepository = createReservationsMemoryRepository(roomsRepository);
@@ -39,12 +47,14 @@ if (process.env.STORAGE === "memory") {
     const knexConfig = require("../knexfile");
     knex = require("knex")(knexConfig.development);
 
+    usersRepository = createUsersKnexRepository(knex);
     buildingsRepository = createBuildingsKnexRepository(knex);
     roomsRepository = createRoomsKnexRepository(knex);
     reservationsRepository = createReservationsKnexRepository(knex);
 }
 
 const app = createApp({
+    usersRepository,
     buildingsRepository,
     roomsRepository,
     reservationsRepository

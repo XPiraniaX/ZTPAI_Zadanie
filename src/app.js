@@ -1,5 +1,6 @@
 ﻿const express = require("express");
 
+const createAuthRoutes = require("./modules/auth/auth.routes");
 const createBuildingsRoutes = require("./modules/buildings/buildings.routes");
 const createRoomsRoutes = require("./modules/rooms/rooms.routes");
 const createReservationsRoutes = require("./modules/reservations/reservations.routes");
@@ -9,6 +10,7 @@ const errorHandler = require("./middleware/errorHandler");
 const NotFoundError = require("./errors/NotFoundError");
 
 function createApp({
+                       usersRepository,
                        buildingsRepository,
                        roomsRepository,
                        reservationsRepository
@@ -17,6 +19,11 @@ function createApp({
 
     app.use(requestLogger);
     app.use(express.json());
+
+    app.use(
+        "/api/auth",
+        createAuthRoutes(usersRepository)
+    );
 
     app.use(
         "/api/buildings",
