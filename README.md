@@ -1,5 +1,7 @@
 ﻿# Room Booking API
 
+[![CI](https://github.com/XPiraniaX/ZTPAI_Zadanie/actions/workflows/ci.yml/badge.svg)](https://github.com/XPiraniaX/ZTPAI_Zadanie/actions/workflows/ci.yml)
+
 ## Uruchomienie projektu
 
 ### Wymagania
