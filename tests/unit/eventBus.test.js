@@ -15,7 +15,7 @@ describe("EventBus", () => {
 
         await eventBus.publish("reservation.created", payload);
 
-        expect(listener).toHaveBeenCalledTimes(2);
+        expect(listener).toHaveBeenCalledTimes(1);
         expect(listener).toHaveBeenCalledWith(payload);
     });
 
