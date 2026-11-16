@@ -1,21 +1,41 @@
 ﻿services:
-  postgres:
-    image: postgres:16
-    container_name: room-booking-postgres
+  db:
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: room_booking
-      POSTGRES_USER: room_booking_user
-      POSTGRES_PASSWORD: local_dev_password
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Ustaw POSTGRES_DB w pliku .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Ustaw POSTGRES_USER w pliku .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Ustaw POSTGRES_PASSWORD w pliku .env}
     volumes:
       - room_booking_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U room_booking_user -d room_booking"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      STORAGE: knex
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?Ustaw JWT_SECRET w pliku .env}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      DISABLE_APP_OVERLAP_CHECK: ${DISABLE_APP_OVERLAP_CHECK:-false}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    stop_grace_period: 5s
 
 volumes:
   room_booking_data:

@@ -1,24 +1,33 @@
-﻿
-const config = require("./src/config");
+﻿const config = require("./src/config");
 
 const migrations = {
     directory: "./migrations",
     extension: "js"
 };
 
+const seeds = {
+    directory: "./seeds",
+    extension: "js"
+};
+
+const productionDatabase = {
+    client: "pg",
+    connection: config.DATABASE_URL,
+    migrations,
+    seeds,
+    pool: {
+        min: 2,
+        max: 10
+    }
+};
+
 module.exports = {
     development: {
-        client: "pg",
-        connection: config.DATABASE_URL,
-        migrations,
-        seeds: {
-            directory: "./seeds",
-            extension: "js"
-        },
-        pool: {
-            min: 2,
-            max: 10
-        }
+        ...productionDatabase
+    },
+
+    production: {
+        ...productionDatabase
     },
 
     test: {

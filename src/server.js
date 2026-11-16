@@ -76,16 +76,36 @@ const server = app.listen(config.PORT, () => {
     console.log(`Server running on http://localhost:${config.PORT}`);
 });
 
-// Bezpieczne zamykanie połączenia z bazą
-function shutdown() {
-    server.close(async () => {
-        if (knex) {
-            await knex.destroy();
+// Bezpieczne zamykanie aplikacji
+let isShuttingDown = false;
+
+async function shutdown(signal) {
+    if (isShuttingDown) {
+        return;
+    }
+
+    isShuttingDown = true;
+    console.log(`Received ${signal}. Starting graceful shutdown...`);
+
+    server.close(async (error) => {
+        if (error) {
+            console.error("Error while closing HTTP server:", error);
+            process.exitCode = 1;
         }
 
-        process.exit(0);
+        try {
+            if (knex) {
+                await knex.destroy();
+                console.log("Database connection pool closed.");
+            }
+
+            console.log("Graceful shutdown completed.");
+        } catch (dbError) {
+            console.error("Error while closing database pool:", dbError);
+            process.exitCode = 1;
+        }
     });
 }
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
