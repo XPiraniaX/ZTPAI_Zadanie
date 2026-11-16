@@ -1,5 +1,4 @@
-﻿
-const { createReservationsService } = require("../../src/modules/reservations/reservations.service");
+﻿const { createReservationsService } = require("../../src/modules/reservations/reservations.service");
 const { createReservationsRepository } = require("../../src/modules/reservations/reservations.repository.memory");
 const { createRoomsRepository } = require("../../src/modules/rooms/rooms.repository.memory");
 
@@ -41,16 +40,22 @@ function createTestContext() {
         usersRepository
     );
 
+    const eventBus = {
+        publish: jest.fn().mockResolvedValue(undefined)
+    };
+
     const service = createReservationsService(
         reservationsRepository,
         roomsRepository,
-        () => new Date(FIXED_NOW)
+        () => new Date(FIXED_NOW),
+        eventBus
     );
 
     return {
         service,
         roomsRepository,
-        reservationsRepository
+        reservationsRepository,
+        eventBus
     };
 }
 
@@ -345,5 +350,98 @@ describe("Reservations service - unit tests", () => {
             ),
             "NOT_FOUND"
         );
+    });
+
+    // 13. Event reservation.created po poprawnym utworzeniu
+    test("publishes reservation.created after successful creation", async () => {
+        const { service, eventBus } = createTestContext();
+
+        const reservation = await service.createReservation(
+            validReservation(),
+            user.id
+        );
+
+        expect(eventBus.publish).toHaveBeenCalledTimes(1);
+        expect(eventBus.publish).toHaveBeenCalledWith(
+            "reservation.created",
+            {
+                reservationId: reservation.id,
+                roomId: 1,
+                userId: user.id,
+                startTime: "2026-11-16T14:00:00.000Z",
+                endTime: "2026-11-16T15:00:00.000Z"
+            }
+        );
+    });
+
+    // 14. Brak eventu reservation.created po błędzie
+    test("does not publish reservation.created when creation fails", async () => {
+        const { service, eventBus } = createTestContext();
+
+        await service.createReservation(
+            validReservation(),
+            user.id
+        );
+
+        eventBus.publish.mockClear();
+
+        await expectErrorCode(
+            service.createReservation(
+                validReservation({
+                    startTime: "2026-11-16T14:30:00.000Z",
+                    endTime: "2026-11-16T15:30:00.000Z"
+                }),
+                anotherUser.id
+            ),
+            "ROOM_ALREADY_BOOKED"
+        );
+
+        expect(eventBus.publish).not.toHaveBeenCalled();
+    });
+
+    // 15. Event reservation.cancelled po poprawnym anulowaniu
+    test("publishes reservation.cancelled after successful cancellation", async () => {
+        const { service, eventBus } = createTestContext();
+
+        const reservation = await service.createReservation(
+            validReservation(),
+            user.id
+        );
+
+        eventBus.publish.mockClear();
+
+        await service.cancelReservation(reservation.id, user);
+
+        expect(eventBus.publish).toHaveBeenCalledTimes(1);
+        expect(eventBus.publish).toHaveBeenCalledWith(
+            "reservation.cancelled",
+            {
+                reservationId: reservation.id,
+                roomId: 1,
+                userId: user.id,
+                cancelledBy: {
+                    id: user.id,
+                    role: user.role
+                }
+            }
+        );
+    });
+
+    // 16. Brak duplikatu eventu przy ponownym anulowaniu
+    test("does not publish reservation.cancelled on repeated cancellation", async () => {
+        const { service, eventBus } = createTestContext();
+
+        const reservation = await service.createReservation(
+            validReservation(),
+            user.id
+        );
+
+        await service.cancelReservation(reservation.id, user);
+
+        eventBus.publish.mockClear();
+
+        await service.cancelReservation(reservation.id, user);
+
+        expect(eventBus.publish).not.toHaveBeenCalled();
     });
 });

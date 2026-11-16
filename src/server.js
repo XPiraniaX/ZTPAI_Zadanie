@@ -28,11 +28,20 @@ const { createRoomsRepository: createRoomsKnexRepository } =
 const { createReservationsRepository: createReservationsKnexRepository } =
     require("./modules/reservations/reservations.repository.knex");
 
+const { EventBus } = require("./events/eventBus");
+const { registerEventListeners } =
+    require("./events/registerEventListeners");
+
+const {
+    createAuditLogRepository
+} = require("./modules/auditLog/auditLog.repository.knex");
+
 let knex;
 let usersRepository;
 let buildingsRepository;
 let roomsRepository;
 let reservationsRepository;
+let auditLogRepository;
 
 // Wybór sposobu przechowywania danych
 if (config.STORAGE === "memory") {
@@ -61,6 +70,20 @@ if (config.STORAGE === "memory") {
     roomsRepository = createRoomsKnexRepository(knex);
 
     reservationsRepository = createReservationsKnexRepository(knex);
+    auditLogRepository = createAuditLogRepository(knex);
+}
+
+// Event Bus
+const eventBus = new EventBus();
+
+if (auditLogRepository) {
+    registerEventListeners({
+        eventBus,
+        auditLogRepository,
+        reservationsRepository
+    });
+
+    console.log("Event listeners registered.");
 }
 
 // Utworzenie aplikacji Express
@@ -68,7 +91,9 @@ const app = createApp({
     usersRepository,
     buildingsRepository,
     roomsRepository,
-    reservationsRepository
+    reservationsRepository,
+    eventBus,
+    auditLogRepository
 });
 
 // Uruchomienie serwera

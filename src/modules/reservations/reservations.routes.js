@@ -187,15 +187,19 @@ const {
  *         $ref: '#/components/responses/InternalServerError'
  */
 
+
 function createReservationsRoutes(
     reservationsRepository,
-    roomsRepository
+    roomsRepository,
+    eventBus = null
 ) {
     const router = express.Router();
 
     const service = createReservationsService(
         reservationsRepository,
-        roomsRepository
+        roomsRepository,
+        undefined,
+        eventBus
     );
 
     const controller = createReservationsController(service);

@@ -1,5 +1,4 @@
-﻿
-const NotFoundError = require("../../errors/NotFoundError");
+﻿const NotFoundError = require("../../errors/NotFoundError");
 const ConflictError = require("../../errors/ConflictError");
 const ValidationError = require("../../errors/ValidationError");
 const config = require("../../config");
@@ -12,7 +11,8 @@ const ALLOWED_STATUS_TRANSITIONS = {
 function createReservationsService(
     reservationsRepository,
     roomsRepository,
-    now = () => new Date()
+    now = () => new Date(),
+    eventBus = null
 ) {
     function checkOwnership(reservation, currentUser) {
         if (currentUser.role === "ADMIN") {
@@ -115,6 +115,8 @@ function createReservationsService(
                 userId: Number(userId)
             };
 
+            let createdReservation;
+
             if (
                 typeof reservationsRepository.createWithRoomLock === "function"
             ) {
@@ -138,34 +140,47 @@ function createReservationsService(
                     );
                 }
 
-                return result;
-            }
+                createdReservation = result;
+            } else {
+                const existingReservations =
+                    await reservationsRepository.findByRoomId(data.roomId);
 
-            const existingReservations =
-                await reservationsRepository.findByRoomId(data.roomId);
+                const overlaps = existingReservations.some(reservation => {
+                    if (reservation.status !== "CONFIRMED") {
+                        return false;
+                    }
 
-            const overlaps = existingReservations.some(reservation => {
-                if (reservation.status !== "CONFIRMED") {
-                    return false;
+                    const existingStart =
+                        new Date(reservation.startTime).getTime();
+
+                    const existingEnd =
+                        new Date(reservation.endTime).getTime();
+
+                    return start < existingEnd && existingStart < end;
+                });
+
+                if (overlaps) {
+                    throw new ConflictError(
+                        "Room is already booked for this time",
+                        "ROOM_ALREADY_BOOKED"
+                    );
                 }
 
-                const existingStart =
-                    new Date(reservation.startTime).getTime();
-
-                const existingEnd =
-                    new Date(reservation.endTime).getTime();
-
-                return start < existingEnd && existingStart < end;
-            });
-
-            if (overlaps) {
-                throw new ConflictError(
-                    "Room is already booked for this time",
-                    "ROOM_ALREADY_BOOKED"
-                );
+                createdReservation =
+                    await reservationsRepository.create(reservationData);
             }
 
-            return reservationsRepository.create(reservationData);
+            if (eventBus) {
+                await eventBus.publish("reservation.created", {
+                    reservationId: createdReservation.id,
+                    roomId: createdReservation.roomId,
+                    userId: Number(userId),
+                    startTime: createdReservation.startTime,
+                    endTime: createdReservation.endTime
+                });
+            }
+
+            return createdReservation;
         },
 
         async cancelReservation(id, currentUser) {
@@ -201,10 +216,25 @@ function createReservationsService(
                 );
             }
 
-            return reservationsRepository.update(id, {
-                status: nextStatus,
-                cancelledAt: now().toISOString()
-            });
+            const updatedReservation =
+                await reservationsRepository.update(id, {
+                    status: nextStatus,
+                    cancelledAt: now().toISOString()
+                });
+
+            if (eventBus) {
+                await eventBus.publish("reservation.cancelled", {
+                    reservationId: updatedReservation.id,
+                    roomId: updatedReservation.roomId,
+                    userId: Number(reservation.user.id),
+                    cancelledBy: {
+                        id: Number(currentUser.id),
+                        role: currentUser.role
+                    }
+                });
+            }
+
+            return updatedReservation;
         }
     };
 }

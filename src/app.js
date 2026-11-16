@@ -7,6 +7,7 @@ const createAuthRoutes = require("./modules/auth/auth.routes");
 const createBuildingsRoutes = require("./modules/buildings/buildings.routes");
 const createRoomsRoutes = require("./modules/rooms/rooms.routes");
 const createReservationsRoutes = require("./modules/reservations/reservations.routes");
+const createAuditLogRoutes = require("./modules/auditLog/auditLog.routes");
 
 const authenticate = require("./middleware/authenticate");
 const requestLogger = require("./middleware/requestLogger");
@@ -18,7 +19,9 @@ function createApp({
                        usersRepository,
                        buildingsRepository,
                        roomsRepository,
-                       reservationsRepository
+                       reservationsRepository,
+                       eventBus,
+                       auditLogRepository
                    }) {
     const app = express();
 
@@ -78,8 +81,15 @@ function createApp({
         "/api/reservations",
         createReservationsRoutes(
             reservationsRepository,
-            roomsRepository
+            roomsRepository,
+            eventBus
         )
+    );
+
+    // Audit log - tylko ADMIN
+    app.use(
+        "/api/admin/audit-log",
+        createAuditLogRoutes(auditLogRepository)
     );
 
     // Nieznana trasa
