@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:unit": "jest --runInBand tests/unit",
     "db:migrate": "knex migrate:latest",
     "db:rollback": "knex migrate:rollback",
     "db:migrate:status": "knex migrate:status",
@@ -27,6 +28,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "jest": "^30.5.2",
     "swagger-jsdoc": "^6.3.0"
   }
 }
