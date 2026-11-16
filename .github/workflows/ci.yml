@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    name: Tests and Docker build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: room_booking_user
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: room_booking
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U room_booking_user -d room_booking"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      STORAGE: knex
+      DATABASE_URL: postgresql://room_booking_user:ci_test_password@localhost:5432/room_booking
+      DATABASE_TEST_URL: postgresql://room_booking_user:ci_test_password@localhost:5432/room_booking_test
+      JWT_SECRET: ci_test_secret_at_least_32_characters_long
+      JWT_EXPIRES_IN: 15m
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create test database
+        run: |
+          PGPASSWORD=ci_test_password psql \
+            -h localhost \
+            -U room_booking_user \
+            -d room_booking \
+            -c "CREATE DATABASE room_booking_test;"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build Docker image
+        run: docker build .
