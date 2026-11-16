@@ -1,7 +1,8 @@
-﻿const dotenv = require("dotenv");
+﻿
+const dotenv = require("dotenv");
 const { z } = require("zod");
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const envSchema = z.object({
     NODE_ENV: z
@@ -28,6 +29,15 @@ const envSchema = z.object({
         )
         .optional(),
 
+    DATABASE_TEST_URL: z
+        .string()
+        .url("DATABASE_TEST_URL musi być poprawnym adresem URL")
+        .refine(
+            value => ["postgres:", "postgresql:"].includes(new URL(value).protocol),
+            "DATABASE_TEST_URL musi używać protokołu postgres:// lub postgresql://"
+        )
+        .optional(),
+
     JWT_SECRET: z
         .string()
         .min(32, "JWT_SECRET musi mieć minimum 32 znaki"),
@@ -46,6 +56,14 @@ const envSchema = z.object({
             code: "custom",
             path: ["DATABASE_URL"],
             message: "DATABASE_URL jest wymagany, gdy STORAGE=knex"
+        });
+    }
+
+    if (config.NODE_ENV === "test" && !config.DATABASE_TEST_URL) {
+        ctx.addIssue({
+            code: "custom",
+            path: ["DATABASE_TEST_URL"],
+            message: "DATABASE_TEST_URL jest wymagany w środowisku testowym"
         });
     }
 });
